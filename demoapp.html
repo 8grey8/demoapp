@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>QR Product App</title>
+
+<script src="https://unpkg.com/html5-qrcode"></script>
+
+<style>
+body {
+  font-family: Arial;
+  padding: 20px;
+}
+input, textarea {
+  width: 100%;
+  padding: 6px;
+  margin: 5px 0;
+}
+button {
+  padding: 7px 15px;
+  background: #1e90ff;
+  color: white;
+  border: none;
+  margin: 5px 3px;
+  cursor: pointer;
+}
+.card {
+  border: 1px solid #ccc;
+  padding: 10px;
+  margin: 10px 0;
+}
+.hidden { display: none; }
+.page { margin-top: 10px; }
+</style>
+</head>
+
+<body>
+
+<h2>QR Product System</h2>
+
+<nav>
+  <button onclick="showPage('home')">🏠 Home</button>
+  <button onclick="showPage('add')">➕ Add Product</button>
+  <button onclick="showPage('list')">📋 Product List</button>
+  <button onclick="showPage('scan')">📷 Scan QR</button>
+</nav>
+
+<hr>
+
+<!-- HOME -->
+<div id="home" class="page">
+  <p>Welcome to QR Product Management System.</p>
+</div>
+
+<!-- ADD PRODUCT -->
+<div id="add" class="page hidden">
+  <h3>Add Product</h3>
+  <input id="name" placeholder="Product Name">
+  <input id="price" placeholder="Price">
+  <textarea id="desc" placeholder="Description"></textarea>
+  <button onclick="addProduct()">Save Product</button>
+</div>
+
+<!-- PRODUCT LIST -->
+<div id="list" class="page hidden">
+  <h3>Product List</h3>
+  <div id="productList"></div>
+</div>
+
+<!-- SCAN -->
+<div id="scan" class="page hidden">
+  <h3>Scan QR Code</h3>
+  <div id="reader" style="width:300px;"></div>
+</div>
+
+<!-- PRODUCT INFO -->
+<div id="productInfo" class="page hidden">
+  <h3 id="pname"></h3>
+  <p id="pprice"></p>
+  <p id="pdesc"></p>
+</div>
+
+<script>
+let products = JSON.parse(localStorage.getItem("products")) || [];
+let scanner = null;
+
+/* Navigation (FIXED) */
+function showPage(pageId) {
+  document.querySelectorAll(".page").forEach(p => p.classList.add("hidden"));
+  document.getElementById(pageId).classList.remove("hidden");
+
+  if (pageId === "list") loadProducts();
+  if (pageId === "scan") startScanner();
+}
+
+/* Add Product */
+function addProduct() {
+  if (!name.value || !price.value) {
+    alert("Product name and price required");
+    return;
+  }
+
+  products.push({
+    name: name.value,
+    price: price.value,
+    desc: desc.value
+  });
+
+  localStorage.setItem("products", JSON.stringify(products));
+
+  name.value = "";
+  price.value = "";
+  desc.value = "";
+
+  showPage("list");
+}
+
+/* Load Products (FIXED) */
+function loadProducts() {
+  productList.innerHTML = "";
+
+  if (products.length === 0) {
+    productList.innerHTML = "<p>No products added yet.</p>";
+    return;
+  }
+
+  products.forEach(p => {
+    const data = encodeURIComponent(JSON.stringify(p));
+
+    productList.innerHTML += `
+      <div class="card">
+        <b>${p.name}</b><br>
+        Price: ₹${p.price}<br>
+        ${p.desc || ""}<br>
+        <img src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${data}">
+      </div>
+    `;
+  });
+}
+
+/* QR Scanner */
+function startScanner() {
+  if (scanner) return;
+
+  scanner = new Html5Qrcode("reader");
+  scanner.start(
+    { facingMode: "environment" },
+    { fps: 10, qrbox: 250 },
+    msg => {
+      scanner.stop();
+      scanner = null;
+      showProduct(JSON.parse(decodeURIComponent(msg)));
+    }
+  );
+}
+
+/* Show Product Info */
+function showProduct(p) {
+  pname.innerText = p.name;
+  pprice.innerText = "Price: ₹" + p.price;
+  pdesc.innerText = p.desc || "";
+
+  showPage("productInfo");
+}
+
+/* Default Page */
+showPage("home");
+</script>
+
+</body>
+</html>
